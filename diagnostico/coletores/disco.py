@@ -2,6 +2,7 @@
 import psutil
 
 GB = 1024 ** 3
+IGNORAR_FS = {"squashfs", "tmpfs", "devfs", "autofs", "overlay", "iso9660"}
 
 
 def coletar():
@@ -11,7 +12,7 @@ def coletar():
             uso = psutil.disk_usage(p.mountpoint)
         except (PermissionError, OSError):
             continue
-        if uso.total == 0:
+        if p.fstype in IGNORAR_FS or uso.total < GB:
             continue
         particoes.append({
             "ponto": p.mountpoint,
