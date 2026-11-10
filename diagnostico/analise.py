@@ -73,12 +73,27 @@ def analisar_uptime(sistema):
     return None
 
 
+def analisar_inicializacao(itens):
+    n = len(itens)
+    if n >= 20:
+        return _achado(FALHA, "Muitos programas na inicialização",
+                       f"{n} programas iniciam junto com o sistema.",
+                       "Desative os que você não usa todo dia: o boot e o uso inicial ficam bem mais lentos.")
+    if n >= 10:
+        return _achado(ATENCAO, "Vários programas na inicialização",
+                       f"{n} programas iniciam junto com o sistema.",
+                       "Revise a lista e desative o que não precisa abrir sozinho.")
+    return _achado(OK, "Programas na inicialização", f"{n} programa(s) iniciam com o sistema.")
+
+
 def analisar(dados):
     achados = [
         analisar_cpu(dados["cpu"], dados["processos"]),
         analisar_memoria(dados["memoria"], dados["processos"]),
     ]
     achados += analisar_discos(dados["disco"])
+    if "inicializacao" in dados:
+        achados.append(analisar_inicializacao(dados["inicializacao"]))
     for extra in (analisar_swap(dados["memoria"]), analisar_uptime(dados["sistema"])):
         if extra:
             achados.append(extra)

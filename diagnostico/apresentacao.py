@@ -37,6 +37,18 @@ def secao_diagnostico(d):
     return out
 
 
+def secao_inicializacao(d):
+    itens = d.get("inicializacao")
+    if itens is None:
+        return []
+    out = [(f"\nPROGRAMAS NA INICIALIZAÇÃO ({len(itens)})\n", "titulo")]
+    if not itens:
+        out.append(("   Nenhum item encontrado.\n", ""))
+    for it in sorted(itens, key=lambda x: x["nome"].lower()):
+        out.append((f"   {it['nome'][:34]:<34} {it['origem']}\n", ""))
+    return out
+
+
 def secao_processos(d):
     out = [("\nTOP PROCESSOS (CPU)\n", "titulo")]
     for p in d["processos"]["por_cpu"]:
@@ -48,7 +60,7 @@ def secao_processos(d):
 
 
 def montar_linhas(d):
-    return secao_inventario(d) + secao_diagnostico(d) + secao_processos(d)
+    return secao_inventario(d) + secao_diagnostico(d) + secao_inicializacao(d) + secao_processos(d)
 
 
 def montar_texto(d):
