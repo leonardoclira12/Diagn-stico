@@ -2,7 +2,7 @@
 import os
 import sys
 
-from . import __version__, analise
+from . import __version__, analise, relatorio
 from .coletores import cpu, disco, memoria, processos, sistema
 
 LARGURA = 60
@@ -98,11 +98,12 @@ def menu():
         print(" 1) Diagnóstico completo")
         print(" 2) Inventário do sistema")
         print(" 3) Top processos")
+        print(" 4) Salvar relatório em arquivo .txt")
         print(" 0) Sair")
         op = input("\n Opção: ").strip()
         if op == "0":
             break
-        if op not in ("1", "2", "3"):
+        if op not in ("1", "2", "3", "4"):
             print(" Opção inválida.")
             continue
         dados = coletar_tudo()
@@ -112,4 +113,6 @@ def menu():
             mostrar_inventario(dados)
         elif op == "3":
             mostrar_processos(dados)
+        elif op == "4":
+            print(f"\n Relatório salvo em: {relatorio.salvar(dados)}")
         input("\n Enter para voltar ao menu...")
