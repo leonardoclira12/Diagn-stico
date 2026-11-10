@@ -18,6 +18,9 @@ def secao_inventario(d):
         (f" CPU ........ {c['modelo']} ({c['nucleos_fisicos']}N/{c['nucleos_logicos']}T)\n", ""),
         (f" RAM ........ {m['ram_total_gb']} GB (swap {m['swap_total_gb']} GB)\n", ""),
     ]
+    for f in d.get("discos_fisicos", []):
+        tam = f" {f['tamanho_gb']} GB," if f["tamanho_gb"] else ""
+        out.append((f" Disco ...... {f['nome']} [{f['tipo']}]{tam} saúde: {f['saude']}\n", ""))
     for p in d["disco"]:
         out.append((f" Partição ... {p['ponto']} [{p['fs']}] {p['total_gb']} GB, {p['livre_gb']} GB livres\n", ""))
     return out

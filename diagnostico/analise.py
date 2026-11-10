@@ -73,6 +73,28 @@ def analisar_uptime(sistema):
     return None
 
 
+def analisar_discos_fisicos(discos):
+    achados = []
+    for d in discos:
+        nome = f"{d['nome']} ({d['tipo']})"
+        if d["saude"] == "Falhando":
+            achados.append(_achado(FALHA, f"Disco com falha: {nome}",
+                                   "O sistema reporta o disco como não saudável.",
+                                   "Faça backup dos dados agora e troque o disco."))
+        elif d["saude"] == "Atenção":
+            achados.append(_achado(ATENCAO, f"Disco com alerta de saúde: {nome}",
+                                   "O sistema reporta sinais de desgaste ou erros.",
+                                   "Faça backup e acompanhe o disco de perto."))
+        if d["tipo"] == "HD":
+            achados.append(_achado(ATENCAO, f"HD mecânico: {d['nome']}",
+                                   "Discos mecânicos são bem mais lentos que SSDs.",
+                                   "Trocar por um SSD é a melhoria de velocidade mais perceptível."))
+    if discos and not achados:
+        achados.append(_achado(OK, "Discos físicos",
+                               ", ".join(f"{d['nome']} ({d['tipo']}, {d['saude']})" for d in discos)))
+    return achados
+
+
 def analisar_inicializacao(itens):
     n = len(itens)
     if n >= 20:
@@ -92,6 +114,7 @@ def analisar(dados):
         analisar_memoria(dados["memoria"], dados["processos"]),
     ]
     achados += analisar_discos(dados["disco"])
+    achados += analisar_discos_fisicos(dados.get("discos_fisicos", []))
     if "inicializacao" in dados:
         achados.append(analisar_inicializacao(dados["inicializacao"]))
     for extra in (analisar_swap(dados["memoria"]), analisar_uptime(dados["sistema"])):
