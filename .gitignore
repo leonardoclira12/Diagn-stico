@@ -2,3 +2,6 @@ __pycache__/
 *.pyc
 .venv/
 relatorios/
+build/
+dist/
+*.spec
