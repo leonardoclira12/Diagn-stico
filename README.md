@@ -10,8 +10,8 @@ e aponta causas prováveis de lentidão.
 - Um commit por etapa
 
 ## Roadmap
-1. [ ] Estrutura do projeto
-2. [ ] Coletores básicos: sistema, CPU, RAM, disco
+1. [x] Estrutura do projeto
+2. [x] Coletores básicos: sistema, CPU, RAM, disco
 3. [ ] Análise de lentidão (regras)
 4. [ ] Menu de terminal
 5. [ ] Exportar relatório em texto
