@@ -5,55 +5,10 @@ import tkinter as tk
 from tkinter import filedialog, messagebox
 from tkinter.scrolledtext import ScrolledText
 
-from . import __version__, analise, relatorio
-from .coletores import cpu, disco, memoria, processos, sistema
+from . import __version__, apresentacao, relatorio
+from .coleta import coletar_tudo
 
-ROTULOS = {"ok": "[ OK ]", "atencao": "[ !! ]", "falha": "[FALHA]"}
 COR = {"ok": "#1a7f37", "atencao": "#b36b00", "falha": "#cf222e"}
-
-
-def coletar_tudo():
-    return {
-        "sistema": sistema.coletar(),
-        "cpu": cpu.coletar(1.0),
-        "memoria": memoria.coletar(),
-        "disco": disco.coletar(),
-        "processos": processos.top(5, 1.0),
-    }
-
-
-def montar_linhas(dados):
-    """Converte os dados em uma lista de (texto, tag) para exibir na tela."""
-    s, c, m = dados["sistema"], dados["cpu"], dados["memoria"]
-    out = [
-        ("INVENTÁRIO\n", "titulo"),
-        (f" Host ....... {s['host']}\n", ""),
-        (f" Sistema .... {s['so']} {s['versao_so']} ({s['arquitetura']})\n", ""),
-        (f" Uptime ..... {s['uptime_horas']} h\n", ""),
-        (f" CPU ........ {c['modelo']} ({c['nucleos_fisicos']}N/{c['nucleos_logicos']}T)\n", ""),
-        (f" RAM ........ {m['ram_total_gb']} GB (swap {m['swap_total_gb']} GB)\n", ""),
-    ]
-    for d in dados["disco"]:
-        out.append((f" Disco ...... {d['ponto']} [{d['fs']}] {d['total_gb']} GB, {d['livre_gb']} GB livres\n", ""))
-
-    out.append(("\nDIAGNÓSTICO DE LENTIDÃO\n", "titulo"))
-    achados = analise.analisar(dados)
-    for a in achados:
-        out.append((f" {ROTULOS[a['nivel']]} {a['titulo']}\n", a["nivel"]))
-        out.append((f"          {a['detalhe']}\n", ""))
-        if a["sugestao"] and a["nivel"] != "ok":
-            out.append((f"          -> {a['sugestao']}\n", ""))
-    problemas = sum(1 for a in achados if a["nivel"] != "ok")
-    resumo = f"{problemas} ponto(s) de atenção." if problemas else "Nenhum problema encontrado."
-    out.append((f"\n Resultado: {resumo}\n", "titulo"))
-
-    out.append(("\nTOP PROCESSOS (CPU)\n", "titulo"))
-    for p in dados["processos"]["por_cpu"]:
-        out.append((f"   {p['nome'][:28]:<28} {p['cpu_percent']:>5}%\n", ""))
-    out.append(("\nTOP PROCESSOS (RAM)\n", "titulo"))
-    for p in dados["processos"]["por_ram"]:
-        out.append((f"   {p['nome'][:28]:<28} {p['ram_percent']:>5}%\n", ""))
-    return out
 
 
 class App:
@@ -115,7 +70,7 @@ class App:
             messagebox.showerror("Erro", valor)
             return
         self.dados = valor
-        self._escrever(montar_linhas(valor))
+        self._escrever(apresentacao.montar_linhas(valor))
         self.btn_salvar.configure(state="normal")
         self.status.configure(text="Concluído.")
 
