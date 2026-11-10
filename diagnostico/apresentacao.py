@@ -52,6 +52,23 @@ def secao_inicializacao(d):
     return out
 
 
+def secao_monitor(d):
+    m = d.get("monitor")
+    if not m:
+        return []
+    out = [(f"\nMONITORAMENTO ({m['duracao_s']} s)\n", "titulo"),
+           (f" CPU ....... média {m['cpu_media']}%  pico {m['cpu_pico']}%\n", ""),
+           (f" RAM ....... média {m['ram_media']}%  pico {m['ram_pico']}%\n", ""),
+           (f" Disco ..... média {m['disco_media_mb_s']} MB/s  pico {m['disco_pico_mb_s']} MB/s\n", ""),
+           ("\n Processos que mais usaram CPU (média):\n", "")]
+    for p in m["top_cpu"]:
+        out.append((f"   {p['nome'][:28]:<28} {p['cpu_media']:>5}%\n", ""))
+    out.append(("\n Processos com maior pico de RAM:\n", ""))
+    for p in m["top_ram"]:
+        out.append((f"   {p['nome'][:28]:<28} {p['ram_max']:>5}%\n", ""))
+    return out
+
+
 def secao_processos(d):
     out = [("\nTOP PROCESSOS (CPU)\n", "titulo")]
     for p in d["processos"]["por_cpu"]:
@@ -63,7 +80,7 @@ def secao_processos(d):
 
 
 def montar_linhas(d):
-    return secao_inventario(d) + secao_diagnostico(d) + secao_inicializacao(d) + secao_processos(d)
+    return secao_inventario(d) + secao_diagnostico(d) + secao_inicializacao(d) + secao_monitor(d) + secao_processos(d)
 
 
 def montar_texto(d):

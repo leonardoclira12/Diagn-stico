@@ -95,6 +95,51 @@ def analisar_discos_fisicos(discos):
     return achados
 
 
+def analisar_monitor(m, discos_fisicos=()):
+    achados = []
+    dur = f"{m['duracao_s']} s"
+    quem = m["top_cpu"][0] if m["top_cpu"] else None
+
+    sat = m["cpu_tempo_saturada_pct"]
+    if sat >= 30:
+        achados.append(_achado(FALHA, "CPU saturada por boa parte do tempo",
+                               f"Ficou acima de 90% em {sat}% de {dur} (média {m['cpu_media']}%, pico {m['cpu_pico']}%).",
+                               "Veja os processos que mais consomem CPU abaixo."))
+    elif sat >= 10 or m["cpu_pico"] >= 98:
+        achados.append(_achado(ATENCAO, "Picos de CPU durante o monitoramento",
+                               f"Média {m['cpu_media']}%, pico {m['cpu_pico']}%, acima de 90% em {sat}% do tempo.",
+                               "Picos curtos são normais; se a lentidão coincide com eles, investigue o processo."))
+    else:
+        achados.append(_achado(OK, "CPU no monitoramento", f"Média {m['cpu_media']}%, pico {m['cpu_pico']}% em {dur}."))
+
+    alta = m["ram_tempo_alta_pct"]
+    if alta >= 30:
+        achados.append(_achado(FALHA, "RAM no limite por boa parte do tempo",
+                               f"Ficou acima de 90% em {alta}% de {dur} (média {m['ram_media']}%, pico {m['ram_pico']}%).",
+                               "Feche programas pesados ou considere mais memória."))
+    elif alta >= 10:
+        achados.append(_achado(ATENCAO, "RAM chegou perto do limite",
+                               f"Média {m['ram_media']}%, pico {m['ram_pico']}%, acima de 90% em {alta}% do tempo.",
+                               "Evite abrir muitos programas ao mesmo tempo."))
+    else:
+        achados.append(_achado(OK, "RAM no monitoramento", f"Média {m['ram_media']}%, pico {m['ram_pico']}% em {dur}."))
+
+    tem_hd = any(d["tipo"] == "HD" for d in discos_fisicos)
+    if tem_hd and m["disco_media_mb_s"] >= 20:
+        achados.append(_achado(ATENCAO, "HD mecânico muito ocupado",
+                               f"Média de {m['disco_media_mb_s']} MB/s de leitura e escrita (pico {m['disco_pico_mb_s']} MB/s).",
+                               "HD sob uso contínuo trava o sistema inteiro; um SSD resolve."))
+    else:
+        achados.append(_achado(OK, "Disco no monitoramento",
+                               f"Média {m['disco_media_mb_s']} MB/s, pico {m['disco_pico_mb_s']} MB/s."))
+
+    if quem and quem["cpu_media"] >= 25:
+        achados.append(_achado(ATENCAO, f"Processo pesado: {quem['nome']}",
+                               f"Usou em média {quem['cpu_media']}% da CPU durante o monitoramento.",
+                               "Feche ou investigue esse programa."))
+    return achados
+
+
 def analisar_inicializacao(itens):
     n = len(itens)
     if n >= 20:
@@ -115,6 +160,8 @@ def analisar(dados):
     ]
     achados += analisar_discos(dados["disco"])
     achados += analisar_discos_fisicos(dados.get("discos_fisicos", []))
+    if dados.get("monitor"):
+        achados += analisar_monitor(dados["monitor"], dados.get("discos_fisicos", []))
     if "inicializacao" in dados:
         achados.append(analisar_inicializacao(dados["inicializacao"]))
     for extra in (analisar_swap(dados["memoria"]), analisar_uptime(dados["sistema"])):
