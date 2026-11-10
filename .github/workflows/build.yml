@@ -1,0 +1,32 @@
+name: Gerar executáveis
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            artefato: Diagnostico-Windows
+            caminho: dist/Diagnostico.exe
+            args: --onefile
+          - os: macos-latest
+            artefato: Diagnostico-Mac
+            caminho: dist/Diagnostico.app
+            args: ""
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -r requirements.txt pyinstaller
+      - run: python -m PyInstaller ${{ matrix.args }} --windowed --name Diagnostico run_gui.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artefato }}
+          path: ${{ matrix.caminho }}
