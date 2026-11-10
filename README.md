@@ -12,7 +12,7 @@ e aponta causas prováveis de lentidão.
 ## Roadmap
 1. [x] Estrutura do projeto
 2. [x] Coletores básicos: sistema, CPU, RAM, disco
-3. [ ] Análise de lentidão (regras)
+3. [x] Análise de lentidão (regras)
 4. [ ] Menu de terminal
 5. [ ] Exportar relatório em texto
 6. [ ] Próximos: bateria, rede, SMART, programas de inicialização, temperaturas
