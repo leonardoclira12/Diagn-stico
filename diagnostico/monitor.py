@@ -47,6 +47,8 @@ def monitorar(segundos, ao_progresso=None, parar=None):
     psutil.cpu_percent(None)
     procs = {}
     for p in psutil.process_iter(["name"]):
+        if p.pid == 0 or (p.info["name"] or "").lower() in ("system idle process", "idle"):
+            continue  # CPU ociosa, não é um programa
         try:
             p.cpu_percent(None)
             procs[p.pid] = {"p": p, "nome": p.info["name"] or "?", "cpu_soma": 0.0, "n": 0, "ram_max": 0.0}
