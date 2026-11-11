@@ -16,7 +16,7 @@ jobs:
             args: --onefile
           - os: macos-latest
             artefato: Diagnostico-Mac
-            caminho: dist/Diagnostico.app
+            caminho: Diagnostico-Mac.zip
             args: ""
     runs-on: ${{ matrix.os }}
     steps:
@@ -26,6 +26,9 @@ jobs:
           python-version: "3.12"
       - run: python -m pip install -r requirements.txt pyinstaller
       - run: python -m PyInstaller ${{ matrix.args }} --windowed --name Diagnostico run_gui.py
+      - name: Compactar o app do Mac (preserva permissões)
+        if: runner.os == 'macOS'
+        run: ditto -c -k --sequesterRsrc --keepParent dist/Diagnostico.app Diagnostico-Mac.zip
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artefato }}
