@@ -163,6 +163,60 @@ def analisar_bateria(b):
     return _achado(OK, "Bateria", f"Carga atual em {b['percent']}% (desgaste não informado pelo sistema).")
 
 
+def analisar_rede(r):
+    if not r:
+        return []
+    dns = r["dns"]
+    alvos = r["alvos"]
+    medidos = [a for a in alvos if a["medio_ms"] is not None]
+    if not r["internet"]:
+        return [_achado(FALHA, "Sem acesso à internet",
+                        "Nenhum teste de conexão nem de DNS respondeu.",
+                        "Verifique cabo/Wi-Fi e o roteador. Se a rede bloqueia testes externos, pode ser alarme falso.")]
+    achados = []
+    if medidos:
+        tent = sum(a["tentativas"] for a in alvos)
+        perdas = sum(a["falhas"] for a in alvos)
+        pct = round(100 * perdas / tent)
+        lat = round(sum(a["medio_ms"] for a in medidos) / len(medidos), 1)
+        pico = max(a["max_ms"] for a in medidos)
+        if pct >= 40:
+            achados.append(_achado(FALHA, "Conexão muito instável",
+                                   f"{pct}% das tentativas de conexão falharam (latência média {lat} ms).",
+                                   "Verifique o sinal do Wi-Fi, o cabo e o roteador."))
+        elif pct >= 20:
+            achados.append(_achado(ATENCAO, "Perda de pacotes na conexão",
+                                   f"{pct}% das tentativas falharam (latência média {lat} ms).",
+                                   "Instabilidade de Wi-Fi ou do provedor. Teste de novo e, se persistir, cabo de rede."))
+        elif lat >= 300:
+            achados.append(_achado(FALHA, "Latência de rede muito alta",
+                                   f"Média de {lat} ms (pico {pico} ms).",
+                                   "A internet está lenta: Wi-Fi fraco, rede congestionada ou problema no provedor."))
+        elif lat >= 120:
+            achados.append(_achado(ATENCAO, "Latência de rede alta",
+                                   f"Média de {lat} ms (pico {pico} ms).",
+                                   "Pode deixar sites e chamadas lentos. Teste perto do roteador ou por cabo."))
+        else:
+            achados.append(_achado(OK, "Latência de rede", f"Média de {lat} ms, {pct}% de perda."))
+    else:
+        achados.append(_achado(OK, "Latência de rede",
+                               "Conexões diretas de teste foram bloqueadas (rede corporativa?); DNS respondeu."))
+    if dns["falhas"] and dns["medio_ms"] is None:
+        achados.append(_achado(FALHA, "DNS não responde", "Nenhum nome foi resolvido.",
+                               "Troque o servidor DNS (ex.: 1.1.1.1 ou 8.8.8.8) ou reinicie o roteador."))
+    elif dns["falhas"]:
+        achados.append(_achado(ATENCAO, "Falhas de DNS",
+                               f"{dns['falhas']} de {dns['total']} nomes não foram resolvidos.",
+                               "Troque o servidor DNS (ex.: 1.1.1.1 ou 8.8.8.8)."))
+    elif dns["medio_ms"] >= 400:
+        achados.append(_achado(ATENCAO, "DNS lento",
+                               f"Resolver nomes levou em média {dns['medio_ms']} ms.",
+                               "Sites demoram a abrir mesmo com internet boa. Trocar o DNS (ex.: 1.1.1.1) costuma resolver."))
+    else:
+        achados.append(_achado(OK, "DNS", f"Resolução em média {dns['medio_ms']} ms."))
+    return achados
+
+
 def analisar_inicializacao(itens):
     n = len(itens)
     if n >= 20:
@@ -186,6 +240,7 @@ def analisar(dados):
     extra_bat = analisar_bateria(dados.get("bateria"))
     if extra_bat:
         achados.append(extra_bat)
+    achados += analisar_rede(dados.get("rede"))
     if dados.get("monitor"):
         achados += analisar_monitor(dados["monitor"], dados.get("discos_fisicos", []))
     if "inicializacao" in dados:

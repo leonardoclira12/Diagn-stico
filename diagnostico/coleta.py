@@ -1,5 +1,5 @@
 """Reúne todos os coletores em um único dicionário de dados."""
-from .coletores import bateria, cpu, disco, discos_fisicos, inicializacao, memoria, processos, sistema
+from .coletores import bateria, cpu, disco, discos_fisicos, inicializacao, memoria, processos, rede, sistema
 
 
 def coletar_tudo():
@@ -12,4 +12,5 @@ def coletar_tudo():
         "discos_fisicos": discos_fisicos.coletar(),
         "inicializacao": inicializacao.coletar(),
         "bateria": bateria.coletar(),
+        "rede": rede.coletar(),
     }

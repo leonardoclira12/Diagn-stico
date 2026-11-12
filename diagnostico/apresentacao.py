@@ -81,6 +81,30 @@ def secao_bateria(d):
     return out
 
 
+def secao_rede(d):
+    r = d.get("rede")
+    if not r:
+        return []
+    out = [("\nREDE\n", "titulo"),
+           (f" Internet ....... {'acessível' if r['internet'] else 'sem resposta'}\n", "")]
+    for a in r["alvos"]:
+        if a["medio_ms"] is None:
+            out.append((f" {a['nome']:<14}... sem resposta ({a['falhas']}/{a['tentativas']} falhas)\n", ""))
+        else:
+            out.append((f" {a['nome']:<14}... média {a['medio_ms']} ms, pico {a['max_ms']} ms, "
+                        f"{a['falhas']}/{a['tentativas']} falhas\n", ""))
+    dns = r["dns"]
+    if dns["medio_ms"] is None:
+        out.append((" DNS ........... sem resposta\n", ""))
+    else:
+        out.append((f" DNS ........... média {dns['medio_ms']} ms, pico {dns['max_ms']} ms"
+                    f" ({dns['falhas']} falha(s))\n", ""))
+    for ad in r["adaptadores"]:
+        vel = f" ({ad['velocidade_mbps']} Mb/s)" if ad["velocidade_mbps"] else ""
+        out.append((f" Adaptador ..... {ad['nome']}{vel}\n", ""))
+    return out
+
+
 def secao_monitor(d):
     m = d.get("monitor")
     if not m:
@@ -109,7 +133,7 @@ def secao_processos(d):
 
 
 def montar_linhas(d):
-    return secao_inventario(d) + secao_diagnostico(d) + secao_inicializacao(d) + secao_bateria(d) + secao_monitor(d) + secao_processos(d)
+    return secao_inventario(d) + secao_diagnostico(d) + secao_inicializacao(d) + secao_bateria(d) + secao_rede(d) + secao_monitor(d) + secao_processos(d)
 
 
 def montar_texto(d):
