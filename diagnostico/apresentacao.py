@@ -26,17 +26,26 @@ def secao_inventario(d):
     return out
 
 
+def descrever_nota(nota):
+    partes = []
+    if nota["falhas"]:
+        partes.append(f"{nota['falhas']} falha(s)")
+    if nota["atencoes"]:
+        partes.append(f"{nota['atencoes']} alerta(s)")
+    partes.append(f"{nota['oks']} ok")
+    return ", ".join(partes)
+
+
 def secao_diagnostico(d):
-    out = [("\nDIAGNÓSTICO DE LENTIDÃO\n", "titulo")]
     achados = analise.analisar(d)
+    nota = analise.resumo_nota(achados)
+    out = [("\nDIAGNÓSTICO DE LENTIDÃO\n", "titulo"),
+           (f" NOTA GERAL: {nota['titulo']}  ({descrever_nota(nota)})\n\n", nota["nivel"])]
     for a in achados:
         out.append((f" {ROTULOS[a['nivel']]} {a['titulo']}\n", a["nivel"]))
         out.append((f"          {a['detalhe']}\n", ""))
         if a["sugestao"] and a["nivel"] != "ok":
             out.append((f"          -> {a['sugestao']}\n", ""))
-    problemas = sum(1 for a in achados if a["nivel"] != "ok")
-    resumo = f"{problemas} ponto(s) de atenção." if problemas else "Nenhum problema encontrado."
-    out.append((f"\n Resultado: {resumo}\n", "titulo"))
     return out
 
 

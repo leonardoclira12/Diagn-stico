@@ -169,3 +169,17 @@ def analisar(dados):
             achados.append(extra)
     ordem = {FALHA: 0, ATENCAO: 1, OK: 2}
     return sorted(achados, key=lambda a: ordem[a["nivel"]])
+
+
+def resumo_nota(achados):
+    """Nota geral: CRÍTICO se há falha, ATENÇÃO se há alerta, senão SAUDÁVEL."""
+    falhas = sum(1 for a in achados if a["nivel"] == FALHA)
+    atencoes = sum(1 for a in achados if a["nivel"] == ATENCAO)
+    oks = sum(1 for a in achados if a["nivel"] == OK)
+    if falhas:
+        nivel, titulo = FALHA, "CRÍTICO"
+    elif atencoes:
+        nivel, titulo = ATENCAO, "ATENÇÃO"
+    else:
+        nivel, titulo = OK, "SAUDÁVEL"
+    return {"nivel": nivel, "titulo": titulo, "falhas": falhas, "atencoes": atencoes, "oks": oks}
