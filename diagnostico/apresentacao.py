@@ -61,6 +61,26 @@ def secao_inicializacao(d):
     return out
 
 
+def secao_bateria(d):
+    b = d.get("bateria")
+    if b is None:
+        return []
+    out = [("\nBATERIA\n", "titulo")]
+    if not b.get("presente"):
+        out.append(("   Nenhuma bateria detectada (computador de mesa).\n", ""))
+        return out
+    out.append((f" Carga atual ..... {b['percent']}% ({'na tomada' if b['na_tomada'] else 'na bateria'})\n", ""))
+    if b.get("saude_pct") is not None:
+        out.append((f" Saúde ........... {b['saude_pct']}% da capacidade original\n", ""))
+    if b.get("capacidade_projeto_mwh") and b.get("capacidade_atual_mwh"):
+        out.append((f" Capacidade ...... {b['capacidade_atual_mwh']} de {b['capacidade_projeto_mwh']} mWh\n", ""))
+    if b.get("ciclos"):
+        out.append((f" Ciclos de carga . {b['ciclos']}\n", ""))
+    if b.get("condicao"):
+        out.append((f" Condição ........ {b['condicao']}\n", ""))
+    return out
+
+
 def secao_monitor(d):
     m = d.get("monitor")
     if not m:
@@ -89,7 +109,7 @@ def secao_processos(d):
 
 
 def montar_linhas(d):
-    return secao_inventario(d) + secao_diagnostico(d) + secao_inicializacao(d) + secao_monitor(d) + secao_processos(d)
+    return secao_inventario(d) + secao_diagnostico(d) + secao_inicializacao(d) + secao_bateria(d) + secao_monitor(d) + secao_processos(d)
 
 
 def montar_texto(d):

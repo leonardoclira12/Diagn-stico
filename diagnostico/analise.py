@@ -140,6 +140,29 @@ def analisar_monitor(m, discos_fisicos=()):
     return achados
 
 
+def analisar_bateria(b):
+    if not b or not b.get("presente"):
+        return None
+    saude, ciclos, cond = b.get("saude_pct"), b.get("ciclos"), (b.get("condicao") or "").lower()
+    ciclos_txt = f", {ciclos} ciclos" if ciclos else ""
+    if saude is not None and saude < 60 or "poor" in cond or "service" in cond or "replace" in cond:
+        return _achado(FALHA, "Bateria muito desgastada",
+                       f"Capacidade atual em {saude}% da original{ciclos_txt}." if saude is not None
+                       else f"Condição reportada: {b.get('condicao')}.",
+                       "A autonomia cai muito e o notebook pode desligar sozinho. Considere trocar a bateria.")
+    if saude is not None and saude < 80 or "fair" in cond:
+        return _achado(ATENCAO, "Bateria com desgaste",
+                       f"Capacidade atual em {saude}% da original{ciclos_txt}." if saude is not None
+                       else f"Condição reportada: {b.get('condicao')}.",
+                       "A bateria já segura menos carga. Acompanhe e planeje a troca.")
+    if ciclos and ciclos >= 1000:
+        return _achado(ATENCAO, "Bateria com muitos ciclos de carga",
+                       f"{ciclos} ciclos de carga.", "Baterias costumam perder desempenho perto de 1000 ciclos.")
+    if saude is not None:
+        return _achado(OK, "Bateria", f"Capacidade em {saude}% da original{ciclos_txt}; carga atual {b['percent']}%.")
+    return _achado(OK, "Bateria", f"Carga atual em {b['percent']}% (desgaste não informado pelo sistema).")
+
+
 def analisar_inicializacao(itens):
     n = len(itens)
     if n >= 20:
@@ -160,6 +183,9 @@ def analisar(dados):
     ]
     achados += analisar_discos(dados["disco"])
     achados += analisar_discos_fisicos(dados.get("discos_fisicos", []))
+    extra_bat = analisar_bateria(dados.get("bateria"))
+    if extra_bat:
+        achados.append(extra_bat)
     if dados.get("monitor"):
         achados += analisar_monitor(dados["monitor"], dados.get("discos_fisicos", []))
     if "inicializacao" in dados:
