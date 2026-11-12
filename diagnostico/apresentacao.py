@@ -4,6 +4,7 @@ A mesma saída é usada pelo terminal, pela janela e pelo relatório .txt.
 Tags: "titulo", "ok", "atencao", "falha" ou "" (texto normal).
 """
 from . import analise
+from .coletores.limpeza import formatar_tamanho
 
 ROTULOS = {"ok": "[ OK ]", "atencao": "[ !! ]", "falha": "[FALHA]"}
 
@@ -105,6 +106,21 @@ def secao_rede(d):
     return out
 
 
+def secao_limpeza(d):
+    itens = d.get("limpeza")
+    if not itens:
+        return []
+    out = [("\nARQUIVOS TEMPORÁRIOS (estimativa)\n", "titulo")]
+    for i in itens:
+        if not i["acessivel"]:
+            out.append((f"   {i['nome']:<30} pasta não encontrada ou sem acesso\n", ""))
+        else:
+            mais = "+" if i["incompleto"] else ""
+            out.append((f"   {i['nome']:<30} {formatar_tamanho(i['bytes'])}{mais} ({i['arquivos']} arquivos)\n", ""))
+    out.append((f"   Total removível: {formatar_tamanho(sum(i['bytes'] for i in itens))}\n", "titulo"))
+    return out
+
+
 def secao_monitor(d):
     m = d.get("monitor")
     if not m:
@@ -133,7 +149,7 @@ def secao_processos(d):
 
 
 def montar_linhas(d):
-    return secao_inventario(d) + secao_diagnostico(d) + secao_inicializacao(d) + secao_bateria(d) + secao_rede(d) + secao_monitor(d) + secao_processos(d)
+    return secao_inventario(d) + secao_diagnostico(d) + secao_inicializacao(d) + secao_bateria(d) + secao_rede(d) + secao_limpeza(d) + secao_monitor(d) + secao_processos(d)
 
 
 def montar_texto(d):

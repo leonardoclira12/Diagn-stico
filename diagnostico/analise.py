@@ -217,6 +217,18 @@ def analisar_rede(r):
     return achados
 
 
+def analisar_limpeza(itens):
+    if not itens:
+        return None
+    total = sum(i["bytes"] for i in itens)
+    gb = total / (1024 ** 3)
+    texto = f"{gb:.2f} GB" if gb >= 1 else f"{total / (1024 ** 2):.0f} MB"
+    if gb >= 5:
+        return _achado(ATENCAO, "Muitos arquivos temporários", f"{texto} em arquivos temporários que podem ser removidos.",
+                       "Use a limpeza (aba Limpeza) para liberar espaço.")
+    return _achado(OK, "Arquivos temporários", f"{texto} que podem ser removidos.")
+
+
 def analisar_inicializacao(itens):
     n = len(itens)
     if n >= 20:
@@ -241,6 +253,9 @@ def analisar(dados):
     if extra_bat:
         achados.append(extra_bat)
     achados += analisar_rede(dados.get("rede"))
+    extra_limp = analisar_limpeza(dados.get("limpeza"))
+    if extra_limp:
+        achados.append(extra_limp)
     if dados.get("monitor"):
         achados += analisar_monitor(dados["monitor"], dados.get("discos_fisicos", []))
     if "inicializacao" in dados:
