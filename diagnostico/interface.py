@@ -4,6 +4,7 @@ import sys
 import threading
 
 from . import __version__, apresentacao, monitor, relatorio
+from .coletores import limpeza
 from .coleta import coletar_tudo
 
 LARGURA = 60
@@ -61,6 +62,28 @@ def monitorar_no_terminal(dados):
     return dados
 
 
+def limpar_no_terminal(dados):
+    print(" Calculando arquivos temporários (só os com mais de 24 horas)...")
+    itens = limpeza.estimar()
+    dados = dict(dados)
+    dados["limpeza"] = itens
+    imprimir(apresentacao.secao_limpeza(dados))
+    escolhidos = [i["id"] for i in itens if i["acessivel"] and i["bytes"] > 0]
+    if not escolhidos:
+        print("\n Nada para limpar.")
+        return dados
+    total = limpeza.formatar_tamanho(sum(i["bytes"] for i in itens))
+    resp = input(f"\n Apagar {total} de arquivos temporários? Digite SIM para confirmar: ").strip()
+    if resp.upper() == "SIM":
+        r = limpeza.limpar(escolhidos)
+        print(f" Liberado: {limpeza.formatar_tamanho(r['liberado_bytes'])} "
+              f"({r['removidos']} arquivos; {r['falhas']} em uso/sem permissão, ignorados).")
+        dados.pop("limpeza", None)
+    else:
+        print(" Nada foi apagado.")
+    return dados
+
+
 def menu():
     dados = None
     while True:
@@ -68,6 +91,7 @@ def menu():
         print(" 1) Diagnóstico completo")
         print(" 2) Monitorar por um tempo (escolha a duração)")
         print(" 3) Salvar último relatório em arquivo .txt")
+        print(" 4) Limpar arquivos temporários (pede confirmação)")
         print(" 0) Sair")
         op = input("\n Opção: ").strip()
         if op == "0":
@@ -84,6 +108,8 @@ def menu():
             dados = monitorar_no_terminal(dados)
             print()
             imprimir(apresentacao.montar_linhas(dados))
+        elif op == "4":
+            dados = limpar_no_terminal(dados or {})
         elif op == "3":
             if dados is None:
                 print(" Rode o diagnóstico primeiro (opção 1).")
