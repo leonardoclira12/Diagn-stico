@@ -50,6 +50,20 @@ def secao_diagnostico(d):
     return out
 
 
+def secao_discos(d):
+    out = [("DISCOS FÍSICOS\n", "titulo")]
+    fisicos = d.get("discos_fisicos", [])
+    if not fisicos:
+        out.append(("   Não foi possível identificar os discos físicos neste sistema.\n", ""))
+    for f in fisicos:
+        tam = f" {f['tamanho_gb']} GB," if f["tamanho_gb"] else ""
+        out.append((f"   {f['nome']} [{f['tipo']}]{tam} saúde: {f['saude']}\n", ""))
+    out.append(("\nPARTIÇÕES\n", "titulo"))
+    for p in d["disco"]:
+        out.append((f"   {p['ponto']} [{p['fs']}] {p['total_gb']} GB, {p['livre_gb']} GB livres ({p['uso_percent']}% usado)\n", ""))
+    return out
+
+
 def secao_inicializacao(d):
     itens = d.get("inicializacao")
     if itens is None:
@@ -154,3 +168,16 @@ def montar_linhas(d):
 
 def montar_texto(d):
     return "".join(t for t, _ in montar_linhas(d))
+
+
+def abas(d):
+    """Texto de cada aba da janela."""
+    return {
+        "Resumo": secao_inventario(d) + secao_diagnostico(d),
+        "Inicialização": secao_inicializacao(d),
+        "Discos": secao_discos(d),
+        "Bateria": secao_bateria(d),
+        "Rede": secao_rede(d),
+        "Monitoramento": secao_monitor(d),
+        "Processos": secao_processos(d),
+    }

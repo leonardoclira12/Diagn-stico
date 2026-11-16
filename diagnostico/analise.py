@@ -202,8 +202,9 @@ def analisar_rede(r):
         achados.append(_achado(OK, "Latência de rede",
                                "Conexões diretas de teste foram bloqueadas (rede corporativa?); DNS respondeu."))
     if dns["falhas"] and dns["medio_ms"] is None:
-        achados.append(_achado(FALHA, "DNS não responde", "Nenhum nome foi resolvido.",
-                               "Troque o servidor DNS (ex.: 1.1.1.1 ou 8.8.8.8) ou reinicie o roteador."))
+        achados.append(_achado(ATENCAO, "DNS não respondeu aos testes",
+                               "Nenhum nome público foi resolvido, mas a conexão de rede respondeu.",
+                               "Se sites não abrem, troque o DNS (ex.: 1.1.1.1 ou 8.8.8.8). Em rede com proxy, pode ser normal."))
     elif dns["falhas"]:
         achados.append(_achado(ATENCAO, "Falhas de DNS",
                                f"{dns['falhas']} de {dns['total']} nomes não foram resolvidos.",
