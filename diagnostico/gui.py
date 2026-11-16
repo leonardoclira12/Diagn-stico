@@ -22,6 +22,55 @@ VAZIO = {
 }
 
 
+class Grafico(tk.Canvas):
+    """Gráfico de linha simples, desenhado conforme os valores chegam."""
+
+    def __init__(self, master, titulo, unidade="%", maximo=None, cor="#0969da", altura=130):
+        super().__init__(master, height=altura, bg="white", highlightthickness=1,
+                         highlightbackground="#d0d7de")
+        self.titulo, self.unidade, self.maximo_fixo, self.cor = titulo, unidade, maximo, cor
+        self.valores, self.total = [], None
+        self.bind("<Configure>", lambda _e: self.desenhar())
+        self.after(50, self.desenhar)
+
+    def reiniciar(self, total=None):
+        self.valores, self.total = [], total
+        self.desenhar()
+
+    def adicionar(self, valor):
+        self.valores.append(valor)
+        self.desenhar()
+
+    def desenhar(self):
+        self.delete("all")
+        w, h = self.winfo_width(), self.winfo_height()
+        if w < 80 or h < 60:
+            return
+        esq, dir_, topo, base = 42, 10, 26, h - 12
+        maximo = self.maximo_fixo or max(10.0, max(self.valores, default=0) * 1.25)
+        atual = f"{self.valores[-1]:.0f}{self.unidade}" if self.valores else "—"
+        self.create_text(8, 11, anchor="w", text=self.titulo, font=("Segoe UI", 9, "bold"))
+        self.create_text(w - 8, 11, anchor="e", text=atual, font=("Segoe UI", 9, "bold"), fill=self.cor)
+        for frac in (0, 0.5, 1):
+            y = base - frac * (base - topo)
+            self.create_line(esq, y, w - dir_, y, fill="#eaeef2")
+            self.create_text(esq - 4, y, anchor="e", text=f"{maximo * frac:.0f}",
+                             font=("Segoe UI", 7), fill="#6e7781")
+        n = len(self.valores)
+        if n == 0:
+            return
+        passos = max((self.total or n) - 1, 1)
+        pontos = []
+        for i, v in enumerate(self.valores):
+            x = esq + (w - esq - dir_) * min(i / passos, 1)
+            y = base - (base - topo) * min(v / maximo, 1)
+            pontos += [x, y]
+        if n == 1:
+            self.create_oval(pontos[0] - 2, pontos[1] - 2, pontos[0] + 2, pontos[1] + 2, fill=self.cor, outline=self.cor)
+        else:
+            self.create_line(*pontos, fill=self.cor, width=2)
+
+
 class App:
     def __init__(self, root):
         self.root = root
@@ -81,6 +130,16 @@ class App:
     def _nova_aba_texto(self, nome):
         quadro = tk.Frame(self.abas)
         self.abas.add(quadro, text=f" {nome} ")
+        if nome == "Monitoramento":
+            graficos = tk.Frame(quadro)
+            graficos.pack(fill="x", padx=4, pady=4)
+            for c in range(3):
+                graficos.columnconfigure(c, weight=1, uniform="g")
+            self.g_cpu = Grafico(graficos, "CPU", "%", maximo=100, cor="#0969da")
+            self.g_ram = Grafico(graficos, "RAM", "%", maximo=100, cor="#8250df")
+            self.g_disco = Grafico(graficos, "Disco (leitura+escrita)", " MB/s", cor="#1a7f37")
+            for c, g in enumerate((self.g_cpu, self.g_ram, self.g_disco)):
+                g.grid(row=0, column=c, sticky="ew", padx=3)
         txt = ScrolledText(quadro, font=("Consolas", 10), state="disabled", wrap="none")
         txt.pack(fill="both", expand=True)
         txt.tag_configure("titulo", font=("Consolas", 10, "bold"))
@@ -137,6 +196,10 @@ class App:
                 if msg[0] == "prog":
                     self.barra.configure(maximum=msg[2], value=msg[1])
                     self.status.configure(text=f"Monitorando... {msg[1]}/{msg[2]} s")
+                elif msg[0] == "amostra":
+                    self.g_cpu.adicionar(msg[1])
+                    self.g_ram.adicionar(msg[2])
+                    self.g_disco.adicionar(msg[3])
                 elif msg[0] == "status":
                     self.status.configure(text=msg[1])
                 else:
@@ -170,12 +233,16 @@ class App:
             return
         self.parar_ev = threading.Event()
         base = self.dados
+        for g in (self.g_cpu, self.g_ram, self.g_disco):
+            g.reiniciar(segundos)
+        self.abas.select(self.paginas["Monitoramento"])
 
         def alvo():
             dados = dict(base) if base else coletar_tudo()
             self.fila.put(("status", f"Monitorando por {monitor.formatar_duracao(segundos)}..."))
             resultado = monitor.monitorar(
-                segundos, ao_progresso=lambda a, b: self.fila.put(("prog", a, b)), parar=self.parar_ev)
+                segundos, ao_progresso=lambda a, b: self.fila.put(("prog", a, b)), parar=self.parar_ev,
+                ao_amostra=lambda c, r, d: self.fila.put(("amostra", c, r, d)))
             if resultado:
                 dados["monitor"] = resultado
             return dados

@@ -40,9 +40,10 @@ def formatar_duracao(segundos):
     return f"{segundos} s"
 
 
-def monitorar(segundos, ao_progresso=None, parar=None):
+def monitorar(segundos, ao_progresso=None, parar=None, ao_amostra=None):
     """Amostra 1x por segundo. `ao_progresso(decorrido, total)` é chamado a cada amostra;
-    `parar` é um threading.Event que encerra mais cedo (os dados coletados até ali são usados)."""
+    `parar` é um threading.Event que encerra mais cedo (os dados coletados até ali são usados).
+    `ao_amostra(cpu_pct, ram_pct, disco_mb_s)` recebe cada leitura (para gráficos ao vivo)."""
     nucleos = psutil.cpu_count(logical=True) or 1
     psutil.cpu_percent(None)
     procs = {}
@@ -73,6 +74,8 @@ def monitorar(segundos, ao_progresso=None, parar=None):
             disco_amostras.append(((io.read_bytes + io.write_bytes)
                                    - (io_anterior.read_bytes + io_anterior.write_bytes)) / MB)
         io_anterior = io
+        if ao_amostra:
+            ao_amostra(cpu_amostras[-1], ram_amostras[-1], disco_amostras[-1] if disco_amostras else 0.0)
 
         for pid, info in list(procs.items()):
             try:
