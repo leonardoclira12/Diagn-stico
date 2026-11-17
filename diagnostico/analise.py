@@ -279,4 +279,6 @@ def resumo_nota(achados):
         nivel, titulo = ATENCAO, "ATENÇÃO"
     else:
         nivel, titulo = OK, "SAUDÁVEL"
-    return {"nivel": nivel, "titulo": titulo, "falhas": falhas, "atencoes": atencoes, "oks": oks}
+    pontuacao = max(0, 100 - 30 * falhas - 10 * atencoes)
+    return {"nivel": nivel, "titulo": titulo, "falhas": falhas, "atencoes": atencoes, "oks": oks,
+            "pontuacao": pontuacao}
