@@ -7,6 +7,7 @@ from tkinter.scrolledtext import ScrolledText
 
 from . import __version__, analise, apresentacao, monitor, relatorio
 from .coleta import coletar_tudo
+from .coletores import limpeza
 
 COR = {"ok": "#1a7f37", "atencao": "#b36b00", "falha": "#cf222e", "neutro": "#6e7781"}
 DURACOES = ["30 segundos", "1 minuto", "2 minutos", "5 minutos", "10 minutos"]
@@ -77,6 +78,9 @@ class App:
         self.dados = None
         self.fila = queue.Queue()
         self.parar_ev = threading.Event()
+        self.ao_fim = None
+        self.itens_limpeza = None
+        self.vars_limpeza = {}
         root.title(f"Diagnóstico v{__version__}")
         root.geometry("940x700")
         root.minsize(760, 520)
@@ -125,6 +129,7 @@ class App:
             self.paginas[nome] = self._nova_aba_texto(nome)
         for nome in ABAS_TEXTO:
             self._escrever(nome, [(VAZIO[nome] + "\n", "")])
+        self._criar_aba_limpeza()
 
     # ---------- construção ----------
     def _nova_aba_texto(self, nome):
@@ -147,6 +152,66 @@ class App:
             txt.tag_configure(nivel, foreground=COR[nivel], font=("Consolas", 10, "bold"))
         self.textos[nome] = txt
         return quadro
+
+    def _criar_aba_limpeza(self):
+        quadro = tk.Frame(self.abas, padx=14, pady=12)
+        self.abas.add(quadro, text=" Limpeza ")
+        self.paginas["Limpeza"] = quadro
+        topo = tk.Frame(quadro)
+        topo.pack(fill="x")
+        self.btn_calc = tk.Button(topo, text="Calcular espaço", padx=12, pady=4, command=self.calcular_limpeza)
+        self.btn_calc.pack(side="left")
+        self.btn_limpar = tk.Button(topo, text="Limpar selecionados", padx=12, pady=4,
+                                    state="disabled", command=self.limpar_selecionados)
+        self.btn_limpar.pack(side="left", padx=8)
+        self.total_limpeza = tk.Label(topo, text="", font=("Segoe UI", 10, "bold"))
+        self.total_limpeza.pack(side="left", padx=8)
+        tk.Label(quadro, justify="left", anchor="w", fg="#57606a",
+                 text="Só são removidos arquivos com mais de 24 horas, dentro das pastas listadas abaixo.\n"
+                      "Nada é apagado sem a sua confirmação. Arquivos em uso são ignorados.").pack(fill="x", pady=(8, 10))
+        self.lista_limpeza = tk.Frame(quadro)
+        self.lista_limpeza.pack(fill="both", expand=True)
+        self._lista_vazia("Clique em \"Calcular espaço\" para ver quanto dá para liberar.")
+
+    def _lista_vazia(self, texto):
+        for w in self.lista_limpeza.winfo_children():
+            w.destroy()
+        tk.Label(self.lista_limpeza, text=texto, anchor="w").pack(fill="x")
+
+    def _mostrar_limpeza(self, itens):
+        self.itens_limpeza = itens
+        if self.dados is not None:
+            self.dados = dict(self.dados, limpeza=itens)
+            self._atualizar_abas()
+        for w in self.lista_limpeza.winfo_children():
+            w.destroy()
+        self.vars_limpeza = {}
+        for i in itens:
+            linha = tk.Frame(self.lista_limpeza)
+            linha.pack(fill="x", pady=3)
+            var = tk.BooleanVar(value=i["acessivel"] and i["bytes"] > 0)
+            var.trace_add("write", lambda *_: self._atualizar_total_limpeza())
+            self.vars_limpeza[i["id"]] = var
+            if i["acessivel"]:
+                mais = "+" if i["incompleto"] else ""
+                rotulo = f"{i['nome']} — {limpeza.formatar_tamanho(i['bytes'])}{mais} ({i['arquivos']} arquivos)"
+            else:
+                rotulo = f"{i['nome']} — pasta não encontrada ou sem acesso"
+            cb = tk.Checkbutton(linha, text=rotulo, variable=var, anchor="w",
+                                state="normal" if (i["acessivel"] and i["bytes"] > 0) else "disabled")
+            cb.pack(fill="x")
+            tk.Label(linha, text=i["explicacao"] + "  Pasta: " + i["pasta"], anchor="w", fg="#57606a",
+                     font=("Segoe UI", 8)).pack(fill="x", padx=24)
+        self._atualizar_total_limpeza()
+
+    def _selecionados(self):
+        return [i for i in (self.itens_limpeza or []) if self.vars_limpeza.get(i["id"]) and self.vars_limpeza[i["id"]].get()]
+
+    def _atualizar_total_limpeza(self):
+        sel = self._selecionados()
+        total = sum(i["bytes"] for i in sel)
+        self.total_limpeza.configure(text=f"Selecionado: {limpeza.formatar_tamanho(total)}" if sel else "Nada selecionado")
+        self.btn_limpar.configure(state="normal" if sel else "disabled")
 
     def _escrever(self, aba, linhas):
         txt = self.textos[aba]
@@ -171,11 +236,16 @@ class App:
         self.btn_monitorar.configure(state=estado)
         self.combo.configure(state="disabled" if ocupado else "normal")
         self.btn_parar.configure(state="normal" if (ocupado and pode_parar) else "disabled")
+        self.btn_calc.configure(state=estado)
         if ocupado:
             self.btn_salvar.configure(state="disabled")
+            self.btn_limpar.configure(state="disabled")
+        elif self.itens_limpeza:
+            self._atualizar_total_limpeza()
 
     # ---------- execução em segundo plano ----------
-    def _rodar(self, alvo, status, pode_parar=False, aba_final="Resumo"):
+    def _rodar(self, alvo, status, pode_parar=False, aba_final="Resumo", ao_fim=None):
+        self.ao_fim = ao_fim
         self._ocupado(True, pode_parar)
         self.barra.configure(value=0)
         self.status.configure(text=status)
@@ -214,6 +284,10 @@ class App:
             self.status.configure(text="Erro.")
             messagebox.showerror("Erro", msg[1])
             return
+        if self.ao_fim:
+            self.status.configure(text="Concluído.")
+            self.ao_fim(msg[1])
+            return
         self.dados = msg[1]
         self._atualizar_abas()
         self.abas.select(self.paginas[self.aba_final])
@@ -223,7 +297,15 @@ class App:
 
     # ---------- ações ----------
     def executar(self):
-        self._rodar(coletar_tudo, "Coletando dados e testando a rede (alguns segundos)...")
+        itens = self.itens_limpeza
+
+        def alvo():
+            d = coletar_tudo()
+            if itens:
+                d["limpeza"] = itens
+            return d
+
+        self._rodar(alvo, "Coletando dados e testando a rede (alguns segundos)...")
 
     def monitorar(self):
         try:
@@ -248,6 +330,31 @@ class App:
             return dados
 
         self._rodar(alvo, "Preparando...", pode_parar=True, aba_final="Monitoramento")
+
+    def calcular_limpeza(self):
+        self.abas.select(self.paginas["Limpeza"])
+        self._rodar(limpeza.estimar, "Calculando arquivos temporários...", ao_fim=self._mostrar_limpeza)
+
+    def limpar_selecionados(self):
+        sel = self._selecionados()
+        if not sel:
+            return
+        total = limpeza.formatar_tamanho(sum(i["bytes"] for i in sel))
+        nomes = "\n".join(f" • {i['nome']}" for i in sel)
+        if not messagebox.askyesno(
+                "Confirmar limpeza",
+                f"Apagar cerca de {total} de arquivos temporários?\n\n{nomes}\n\n"
+                "Só arquivos com mais de 24 horas serão removidos. Isso não pode ser desfeito."):
+            return
+        ids = [i["id"] for i in sel]
+        self._rodar(lambda: limpeza.limpar(ids), "Limpando...", ao_fim=self._fim_limpeza)
+
+    def _fim_limpeza(self, r):
+        messagebox.showinfo(
+            "Limpeza concluída",
+            f"Liberado: {limpeza.formatar_tamanho(r['liberado_bytes'])} ({r['removidos']} arquivos).\n"
+            f"{r['falhas']} arquivo(s) em uso ou sem permissão foram ignorados.")
+        self.calcular_limpeza()
 
     def parar(self):
         self.parar_ev.set()
