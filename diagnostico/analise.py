@@ -256,6 +256,17 @@ def analisar_atualizacoes(a):
     return out
 
 
+def analisar_dispositivos(d):
+    if d is None:
+        return []
+    itens = d["itens"]
+    if not itens:
+        return [_achado(OK, "Dispositivos e drivers", "Nenhum dispositivo com erro de driver.")]
+    nomes = ", ".join(i["nome"] for i in itens[:3]) + (f" e mais {len(itens) - 3}" if len(itens) > 3 else "")
+    return [_achado(ATENCAO, f"{len(itens)} dispositivo(s) com problema de driver", nomes,
+                    "Abra o Gerenciador de Dispositivos e atualize ou reinstale o driver.")]
+
+
 def analisar_inicializacao(itens):
     n = len(itens)
     if n >= 20:
@@ -281,6 +292,7 @@ def analisar(dados):
         achados.append(extra_bat)
     achados += analisar_rede(dados.get("rede"))
     achados += analisar_atualizacoes(dados.get("atualizacoes"))
+    achados += analisar_dispositivos(dados.get("dispositivos"))
     extra_limp = analisar_limpeza(dados.get("limpeza"))
     if extra_limp:
         achados.append(extra_limp)

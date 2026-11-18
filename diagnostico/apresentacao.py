@@ -156,6 +156,20 @@ def secao_atualizacoes(d):
     return out
 
 
+def secao_dispositivos(d):
+    if "dispositivos" not in d:
+        return []
+    disp = d["dispositivos"]
+    out = [("\nDISPOSITIVOS E DRIVERS\n", "titulo")]
+    if disp is None:
+        out.append(("   Verificação disponível apenas no Windows.\n", ""))
+    elif not disp["itens"]:
+        out.append(("   Nenhum dispositivo com erro de driver.\n", ""))
+    for i in (disp or {}).get("itens", []):
+        out.append((f"   {i['nome'][:44]:<44} {i['classe']:<12} código {i['codigo']}: {i['descricao']}\n", ""))
+    return out
+
+
 def secao_monitor(d):
     m = d.get("monitor")
     if not m:
@@ -184,7 +198,7 @@ def secao_processos(d):
 
 
 def montar_linhas(d):
-    return secao_inventario(d) + secao_diagnostico(d) + secao_inicializacao(d) + secao_bateria(d) + secao_rede(d) + secao_limpeza(d) + secao_atualizacoes(d) + secao_monitor(d) + secao_processos(d)
+    return secao_inventario(d) + secao_diagnostico(d) + secao_inicializacao(d) + secao_bateria(d) + secao_rede(d) + secao_limpeza(d) + secao_atualizacoes(d) + secao_dispositivos(d) + secao_monitor(d) + secao_processos(d)
 
 
 def montar_texto(d):
