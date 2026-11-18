@@ -5,7 +5,7 @@ depois as leituras mais lentas (PowerShell, rede) em paralelo.
 """
 from concurrent.futures import ThreadPoolExecutor
 
-from .coletores import (atualizacoes, bateria, cpu, disco, discos_fisicos, dispositivos, eventos, inicializacao, memoria, processos,
+from .coletores import (atualizacoes, bateria, boot, cpu, disco, discos_fisicos, dispositivos, eventos, inicializacao, memoria, processos,
                         rede, sistema)
 
 # Leituras lentas, executadas em paralelo. Valor None = "não deu para ler / não se aplica".
@@ -17,6 +17,7 @@ LEITORES = {
     "atualizacoes": atualizacoes.coletar,
     "dispositivos": dispositivos.coletar,
     "eventos": eventos.coletar,
+    "boot": boot.coletar,
 }
 PADRAO = {"discos_fisicos": [], "inicializacao": [], "bateria": {"presente": False}}
 

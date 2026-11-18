@@ -300,6 +300,21 @@ def analisar_eventos(e):
     return out
 
 
+def analisar_boot(b):
+    if not b:
+        return []
+    ult = b["ultimo_s"]
+    nomes = ", ".join(o["nome"] for o in b["ofensores"][:3])
+    extra = f" Mais atrasaram: {nomes}." if nomes else ""
+    if ult >= 180:
+        return [_achado(FALHA, "Inicialização muito lenta", f"O Windows levou {ult} s para iniciar (média {b['media_s']} s).{extra}",
+                        "Desative programas da inicialização e, se usa HD, troque por um SSD.")]
+    if ult >= 90:
+        return [_achado(ATENCAO, "Inicialização lenta", f"O Windows levou {ult} s para iniciar (média {b['media_s']} s).{extra}",
+                        "Reduza os programas que abrem junto com o sistema.")]
+    return [_achado(OK, "Tempo de inicialização", f"Última inicialização em {ult} s (média {b['media_s']} s).")]
+
+
 def analisar_inicializacao(itens):
     n = len(itens)
     if n >= 20:
@@ -327,6 +342,7 @@ def analisar(dados):
     achados += analisar_atualizacoes(dados.get("atualizacoes"))
     achados += analisar_dispositivos(dados.get("dispositivos"))
     achados += analisar_eventos(dados.get("eventos"))
+    achados += analisar_boot(dados.get("boot"))
     extra_limp = analisar_limpeza(dados.get("limpeza"))
     if extra_limp:
         achados.append(extra_limp)

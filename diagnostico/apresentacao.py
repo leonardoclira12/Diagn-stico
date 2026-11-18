@@ -188,6 +188,22 @@ def secao_eventos(d):
     return out
 
 
+def secao_boot(d):
+    if "boot" not in d:
+        return []
+    b = d["boot"]
+    out = [("\nTEMPO DE INICIALIZAÇÃO\n", "titulo")]
+    if not b:
+        out.append(("   Sem dados (disponível no Windows; pode exigir executar como administrador).\n", ""))
+        return out
+    out.append((f" Última inicialização .. {b['ultimo_s']} s (média de {b['medidas']}: {b['media_s']} s)\n", ""))
+    if b["ofensores"]:
+        out.append((" O que mais atrasou:\n", ""))
+        for o in b["ofensores"]:
+            out.append((f"   {o['nome'][:40]:<40} {o['tipo']:<9} +{o['atraso_s']} s\n", ""))
+    return out
+
+
 def secao_monitor(d):
     m = d.get("monitor")
     if not m:
@@ -216,7 +232,7 @@ def secao_processos(d):
 
 
 def montar_linhas(d):
-    return secao_inventario(d) + secao_diagnostico(d) + secao_inicializacao(d) + secao_bateria(d) + secao_rede(d) + secao_limpeza(d) + secao_atualizacoes(d) + secao_dispositivos(d) + secao_eventos(d) + secao_monitor(d) + secao_processos(d)
+    return secao_inventario(d) + secao_diagnostico(d) + secao_inicializacao(d) + secao_bateria(d) + secao_rede(d) + secao_limpeza(d) + secao_atualizacoes(d) + secao_dispositivos(d) + secao_eventos(d) + secao_boot(d) + secao_monitor(d) + secao_processos(d)
 
 
 def montar_texto(d):
