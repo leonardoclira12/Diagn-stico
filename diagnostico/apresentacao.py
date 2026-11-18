@@ -135,6 +135,27 @@ def secao_limpeza(d):
     return out
 
 
+def secao_atualizacoes(d):
+    if "atualizacoes" not in d:
+        return []
+    a = d["atualizacoes"]
+    out = [("\nATUALIZAÇÕES\n", "titulo")]
+    if not a:
+        out.append(("   Não foi possível verificar neste sistema.\n", ""))
+        return out
+    if a.get("reboot_pendente") is not None:
+        out.append((f" Reinício pendente ... {'sim' if a['reboot_pendente'] else 'não'}\n", ""))
+    if a.get("pendentes") is not None:
+        out.append((f" Pendentes ........... {len(a['pendentes'])}\n", ""))
+        for t in a["pendentes"][:8]:
+            out.append((f"   - {t[:90]}\n", ""))
+        if len(a["pendentes"]) > 8:
+            out.append((f"   ... e mais {len(a['pendentes']) - 8}\n", ""))
+    if a.get("ultima_instalacao"):
+        out.append((f" Última instalada .... {a['ultima_instalacao']} (há {a['dias_desde_ultima']} dias)\n", ""))
+    return out
+
+
 def secao_monitor(d):
     m = d.get("monitor")
     if not m:
@@ -163,7 +184,7 @@ def secao_processos(d):
 
 
 def montar_linhas(d):
-    return secao_inventario(d) + secao_diagnostico(d) + secao_inicializacao(d) + secao_bateria(d) + secao_rede(d) + secao_limpeza(d) + secao_monitor(d) + secao_processos(d)
+    return secao_inventario(d) + secao_diagnostico(d) + secao_inicializacao(d) + secao_bateria(d) + secao_rede(d) + secao_limpeza(d) + secao_atualizacoes(d) + secao_monitor(d) + secao_processos(d)
 
 
 def montar_texto(d):

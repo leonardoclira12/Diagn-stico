@@ -230,6 +230,32 @@ def analisar_limpeza(itens):
     return _achado(OK, "Arquivos temporários", f"{texto} que podem ser removidos.")
 
 
+def analisar_atualizacoes(a):
+    if not a:
+        return []
+    out = []
+    if a.get("reboot_pendente"):
+        out.append(_achado(ATENCAO, "Reinicialização pendente",
+                           "O sistema está esperando um reinício para concluir atualizações.",
+                           "Salve seu trabalho e reinicie o computador."))
+    pend = a.get("pendentes")
+    if pend is not None:
+        n = len(pend)
+        if n >= 5:
+            out.append(_achado(ATENCAO, "Muitas atualizações pendentes", f"{n} atualizações aguardando instalação.",
+                               "Instale pelo Windows Update (página Ferramentas)."))
+        elif n >= 1:
+            out.append(_achado(OK, "Atualizações pendentes", f"{n} atualização(ões) disponível(is)."))
+        else:
+            out.append(_achado(OK, "Atualizações", "Nenhuma atualização pendente."))
+    dias = a.get("dias_desde_ultima")
+    if dias is not None and dias >= 90:
+        out.append(_achado(ATENCAO, "Sem atualizações há muito tempo",
+                           f"A última atualização instalada foi há {dias} dias.",
+                           "Verifique o Windows Update: atualizações trazem correções de desempenho e segurança."))
+    return out
+
+
 def analisar_inicializacao(itens):
     n = len(itens)
     if n >= 20:
@@ -254,6 +280,7 @@ def analisar(dados):
     if extra_bat:
         achados.append(extra_bat)
     achados += analisar_rede(dados.get("rede"))
+    achados += analisar_atualizacoes(dados.get("atualizacoes"))
     extra_limp = analisar_limpeza(dados.get("limpeza"))
     if extra_limp:
         achados.append(extra_limp)
