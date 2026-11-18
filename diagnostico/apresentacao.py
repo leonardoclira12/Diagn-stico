@@ -170,6 +170,24 @@ def secao_dispositivos(d):
     return out
 
 
+def secao_eventos(d):
+    if "eventos" not in d:
+        return []
+    e = d["eventos"]
+    out = [("\nERROS RECENTES DO SISTEMA (7 dias)\n", "titulo")]
+    if not e:
+        out.append(("   Não foi possível ler os registros neste sistema.\n", ""))
+        return out
+    nomes = {"falhas_sistema": "Falhas graves (tela azul/kernel panic)", "desligamentos": "Desligamentos inesperados",
+             "disco": "Erros de disco", "travamentos": "Travamentos de programas"}
+    for chave, rotulo in nomes.items():
+        if chave in e:
+            c = e[chave]
+            ult = f"  (último: {c['ultimo']})" if c.get("ultimo") else ""
+            out.append((f"   {rotulo:<40} {c['n']}{ult}\n", ""))
+    return out
+
+
 def secao_monitor(d):
     m = d.get("monitor")
     if not m:
@@ -198,7 +216,7 @@ def secao_processos(d):
 
 
 def montar_linhas(d):
-    return secao_inventario(d) + secao_diagnostico(d) + secao_inicializacao(d) + secao_bateria(d) + secao_rede(d) + secao_limpeza(d) + secao_atualizacoes(d) + secao_dispositivos(d) + secao_monitor(d) + secao_processos(d)
+    return secao_inventario(d) + secao_diagnostico(d) + secao_inicializacao(d) + secao_bateria(d) + secao_rede(d) + secao_limpeza(d) + secao_atualizacoes(d) + secao_dispositivos(d) + secao_eventos(d) + secao_monitor(d) + secao_processos(d)
 
 
 def montar_texto(d):

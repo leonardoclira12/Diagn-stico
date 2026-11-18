@@ -267,6 +267,39 @@ def analisar_dispositivos(d):
                     "Abra o Gerenciador de Dispositivos e atualize ou reinstale o driver.")]
 
 
+def analisar_eventos(e):
+    if not e:
+        return []
+    def n(c):
+        return (e.get(c) or {}).get("n", 0)
+    def quando(c):
+        u = (e.get(c) or {}).get("ultimo")
+        return f" (último em {u})" if u else ""
+    dias = 7
+    out = []
+    if n("falhas_sistema"):
+        out.append(_achado(FALHA, "Falhas graves do sistema (tela azul ou kernel panic)",
+                           f"{n('falhas_sistema')} nos últimos {dias} dias{quando('falhas_sistema')}.",
+                           "Causas comuns: driver com defeito, memória RAM ou disco com problema. Atualize os drivers e teste a memória."))
+    if n("desligamentos"):
+        out.append(_achado(ATENCAO, "Desligamentos inesperados",
+                           f"{n('desligamentos')} nos últimos {dias} dias{quando('desligamentos')}.",
+                           "Verifique a fonte de energia, o superaquecimento e quedas de luz."))
+    if n("disco"):
+        nivel = FALHA if n("disco") >= 5 else ATENCAO
+        out.append(_achado(nivel, "Erros de disco registrados",
+                           f"{n('disco')} nos últimos {dias} dias{quando('disco')}.",
+                           "Faça backup e verifique a saúde do disco: disco ou cabo com defeito causa travamentos."))
+    if n("travamentos") >= 10:
+        out.append(_achado(ATENCAO, "Programas travando com frequência",
+                           f"{n('travamentos')} travamentos nos últimos {dias} dias{quando('travamentos')}.",
+                           "Atualize ou reinstale os programas que mais travam."))
+    if not out:
+        extra = f" ({n('travamentos')} travamento(s) de programas)" if n("travamentos") else ""
+        out.append(_achado(OK, "Erros recentes do sistema", f"Nenhum erro grave nos últimos {dias} dias{extra}."))
+    return out
+
+
 def analisar_inicializacao(itens):
     n = len(itens)
     if n >= 20:
@@ -293,6 +326,7 @@ def analisar(dados):
     achados += analisar_rede(dados.get("rede"))
     achados += analisar_atualizacoes(dados.get("atualizacoes"))
     achados += analisar_dispositivos(dados.get("dispositivos"))
+    achados += analisar_eventos(dados.get("eventos"))
     extra_limp = analisar_limpeza(dados.get("limpeza"))
     if extra_limp:
         achados.append(extra_limp)
