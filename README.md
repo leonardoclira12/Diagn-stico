@@ -10,8 +10,8 @@ e aponta causas prováveis de lentidão.
 - Um commit por etapa
 
 ## O que o app faz
-- **Nota geral** no topo da janela: Saudável, Atenção ou Crítico
-- Abas: Resumo, Inicialização, Discos, Bateria, Rede, Monitoramento, Processos e Limpeza
+- **Janela em tema escuro** com menu lateral, nota geral em anel (Saudável, Atenção ou Crítico) e uma explicação curta em cada bloco
+- Páginas: Resumo, Inicialização, Discos, Bateria, Rede, Monitoramento, Processos, Limpeza e Relatório completo
 - Inventário: sistema, CPU, RAM, partições e discos físicos (tipo SSD/HD e saúde)
 - Diagnóstico de lentidão por regras: CPU, RAM, swap, disco cheio, HD mecânico, saúde do disco, uptime
 - Programas na inicialização (Windows: Registro e pasta Inicializar; Mac: LaunchAgents e Itens de Login)
@@ -31,7 +31,8 @@ e aponta causas prováveis de lentidão.
 - [ ] Ações: abrir Gerenciador de Tarefas, desativar programa de inicialização
 - [ ] Relatório em HTML/PDF e histórico de diagnósticos
 - [ ] Temperaturas e throttling
-- [ ] Ícone próprio e tema escuro
+- [x] Tema escuro e menu lateral
+- [ ] Ícone próprio
 
 ## Como usar
 

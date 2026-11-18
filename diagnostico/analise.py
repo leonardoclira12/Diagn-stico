@@ -279,6 +279,12 @@ def resumo_nota(achados):
         nivel, titulo = ATENCAO, "ATENÇÃO"
     else:
         nivel, titulo = OK, "SAUDÁVEL"
-    pontuacao = max(0, 100 - 30 * falhas - 10 * atencoes)
+    # A pontuação acompanha a faixa da nota: Saudável 100, Atenção 60-89, Crítico até 59.
+    if falhas:
+        pontuacao = max(10, 59 - 10 * (falhas - 1) - 3 * atencoes)
+    elif atencoes:
+        pontuacao = max(60, 94 - 5 * atencoes)
+    else:
+        pontuacao = 100
     return {"nivel": nivel, "titulo": titulo, "falhas": falhas, "atencoes": atencoes, "oks": oks,
             "pontuacao": pontuacao}

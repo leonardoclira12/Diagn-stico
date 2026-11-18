@@ -112,8 +112,8 @@ def secao_rede(d):
     if dns["medio_ms"] is None:
         out.append((" DNS ........... sem resposta\n", ""))
     else:
-        out.append((f" DNS ........... média {dns['medio_ms']} ms, pico {dns['max_ms']} ms"
-                    f" ({dns['falhas']} falha(s))\n", ""))
+        pico = f", pico {dns['max_ms']} ms" if dns.get("max_ms") is not None else ""
+        out.append((f" DNS ........... média {dns['medio_ms']} ms{pico} ({dns['falhas']} falha(s))\n", ""))
     for ad in r["adaptadores"]:
         vel = f" ({ad['velocidade_mbps']} Mb/s)" if ad["velocidade_mbps"] else ""
         out.append((f" Adaptador ..... {ad['nome']}{vel}\n", ""))
