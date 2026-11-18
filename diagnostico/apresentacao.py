@@ -204,6 +204,21 @@ def secao_boot(d):
     return out
 
 
+def secao_seguranca(d):
+    if "seguranca" not in d:
+        return []
+    sg = d["seguranca"]
+    out = [("\nSEGURANÇA\n", "titulo")]
+    if not sg or not sg.get("verificacoes"):
+        out.append(("   Não foi possível verificar neste sistema.\n", ""))
+        return out
+    for i in sg["verificacoes"]:
+        marca, tag = (("[ OK ]", "ok") if i["ok"] else ("[ !! ]", "atencao")) if i["ok"] is not None else ("[ -- ]", "")
+        out.append((f" {marca} {i['nome']}", tag))
+        out.append((f"  {i['detalhe']}\n", ""))
+    return out
+
+
 def secao_monitor(d):
     m = d.get("monitor")
     if not m:
@@ -232,7 +247,7 @@ def secao_processos(d):
 
 
 def montar_linhas(d):
-    return secao_inventario(d) + secao_diagnostico(d) + secao_inicializacao(d) + secao_bateria(d) + secao_rede(d) + secao_limpeza(d) + secao_atualizacoes(d) + secao_dispositivos(d) + secao_eventos(d) + secao_boot(d) + secao_monitor(d) + secao_processos(d)
+    return secao_inventario(d) + secao_diagnostico(d) + secao_inicializacao(d) + secao_bateria(d) + secao_rede(d) + secao_limpeza(d) + secao_atualizacoes(d) + secao_dispositivos(d) + secao_eventos(d) + secao_boot(d) + secao_seguranca(d) + secao_monitor(d) + secao_processos(d)
 
 
 def montar_texto(d):

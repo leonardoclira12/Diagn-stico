@@ -315,6 +315,19 @@ def analisar_boot(b):
     return [_achado(OK, "Tempo de inicialização", f"Última inicialização em {ult} s (média {b['media_s']} s).")]
 
 
+def analisar_seguranca(sg):
+    if not sg or not sg.get("verificacoes"):
+        return []
+    itens = sg["verificacoes"]
+    ruins = [i for i in itens if i["ok"] is False]
+    if ruins:
+        detalhe = "; ".join(f"{i['nome']}: {i['detalhe']}" for i in ruins[:3])
+        return [_achado(ATENCAO, f"{len(ruins)} ponto(s) de segurança a rever", detalhe,
+                        "Ative o antivírus e o firewall e mantenha as definições atualizadas.")]
+    bons = sum(1 for i in itens if i["ok"])
+    return [_achado(OK, "Segurança", f"{bons} verificação(ões) em ordem (antivírus, firewall e proteções do sistema).")]
+
+
 def analisar_inicializacao(itens):
     n = len(itens)
     if n >= 20:
@@ -343,6 +356,7 @@ def analisar(dados):
     achados += analisar_dispositivos(dados.get("dispositivos"))
     achados += analisar_eventos(dados.get("eventos"))
     achados += analisar_boot(dados.get("boot"))
+    achados += analisar_seguranca(dados.get("seguranca"))
     extra_limp = analisar_limpeza(dados.get("limpeza"))
     if extra_limp:
         achados.append(extra_limp)
