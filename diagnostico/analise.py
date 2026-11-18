@@ -328,6 +328,28 @@ def analisar_seguranca(sg):
     return [_achado(OK, "Segurança", f"{bons} verificação(ões) em ordem (antivírus, firewall e proteções do sistema).")]
 
 
+def analisar_hardware(h):
+    if not h:
+        return []
+    out = []
+    for g in h.get("gpus", []):
+        nome = (g.get("nome") or "")
+        baixo = nome.lower()
+        if any(v in baixo for v in ("virtual", "vmware", "hyper-v", "remote", "parsec", "citrix", "vnc")):
+            continue
+        if "basic display" in baixo:
+            out.append(_achado(ATENCAO, "Placa de vídeo sem driver próprio",
+                               f"O Windows está usando o driver genérico ({nome}).",
+                               "Instale o driver da placa de vídeo (site do fabricante): sem ele, tudo fica mais lento."))
+        elif g.get("anos") is not None and g["anos"] >= 3:
+            out.append(_achado(ATENCAO, "Driver de vídeo antigo",
+                               f"{nome}: driver de {g['data']} (cerca de {g['anos']} anos).",
+                               "Vale atualizar pelo site do fabricante, principalmente para jogos e vídeo."))
+    if not out:
+        out.append(_achado(OK, "Hardware", f"{h.get('modelo') or 'Computador'} identificado; nenhum alerta de driver de vídeo."))
+    return out
+
+
 def analisar_inicializacao(itens):
     n = len(itens)
     if n >= 20:
@@ -357,6 +379,7 @@ def analisar(dados):
     achados += analisar_eventos(dados.get("eventos"))
     achados += analisar_boot(dados.get("boot"))
     achados += analisar_seguranca(dados.get("seguranca"))
+    achados += analisar_hardware(dados.get("hardware"))
     extra_limp = analisar_limpeza(dados.get("limpeza"))
     if extra_limp:
         achados.append(extra_limp)

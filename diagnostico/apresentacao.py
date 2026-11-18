@@ -219,6 +219,37 @@ def secao_seguranca(d):
     return out
 
 
+def secao_hardware(d):
+    if "hardware" not in d:
+        return []
+    h = d["hardware"]
+    out = [("\nHARDWARE\n", "titulo")]
+    if not h:
+        out.append(("   Não foi possível ler o hardware neste sistema.\n", ""))
+        return out
+    marca = " ".join(x for x in (h.get("fabricante"), h.get("modelo")) if x)
+    linhas = [("Computador", marca), ("Número de série", h.get("serie")),
+              ("Placa-mãe / chip", h.get("placa")),
+              ("BIOS / firmware", " · ".join(x for x in (h.get("bios"), h.get("bios_data")) if x))]
+    for rotulo, valor in linhas:
+        if valor:
+            out.append((f" {rotulo:<17} {valor}\n", ""))
+    if h.get("ram_texto"):
+        out.append((f" {'Memória':<17} {h['ram_texto']}\n", ""))
+    mods = h.get("ram_modulos") or []
+    if mods:
+        slots = f" de {h['slots']} slots" if h.get("slots") else ""
+        out.append((f" {'Memória':<17} {len(mods)} pente(s){slots}\n", ""))
+        for m in mods:
+            extra = " ".join(x for x in (m.get("tipo"), f"{m['mhz']} MHz" if m.get("mhz") else None) if x)
+            out.append((f"{'':<19}- {m['gb']} GB {extra}\n", ""))
+    for g in h.get("gpus", []):
+        drv = f" · driver {g['driver']}" if g.get("driver") else ""
+        data = f" ({g['data']})" if g.get("data") else ""
+        out.append((f" {'Vídeo':<17} {g['nome']}{drv}{data}\n", ""))
+    return out
+
+
 def secao_monitor(d):
     m = d.get("monitor")
     if not m:
@@ -247,7 +278,7 @@ def secao_processos(d):
 
 
 def montar_linhas(d):
-    return secao_inventario(d) + secao_diagnostico(d) + secao_inicializacao(d) + secao_bateria(d) + secao_rede(d) + secao_limpeza(d) + secao_atualizacoes(d) + secao_dispositivos(d) + secao_eventos(d) + secao_boot(d) + secao_seguranca(d) + secao_monitor(d) + secao_processos(d)
+    return secao_inventario(d) + secao_diagnostico(d) + secao_inicializacao(d) + secao_bateria(d) + secao_rede(d) + secao_limpeza(d) + secao_atualizacoes(d) + secao_dispositivos(d) + secao_eventos(d) + secao_boot(d) + secao_seguranca(d) + secao_hardware(d) + secao_monitor(d) + secao_processos(d)
 
 
 def montar_texto(d):
