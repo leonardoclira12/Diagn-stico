@@ -286,13 +286,16 @@ def montar_texto(d):
 
 
 def abas(d):
-    """Texto de cada aba da janela."""
+    """Texto de cada página da janela."""
     return {
         "Resumo": secao_inventario(d) + secao_diagnostico(d),
-        "Inicialização": secao_inicializacao(d),
+        "Inicialização": secao_inicializacao(d) + secao_boot(d),
         "Discos": secao_discos(d),
         "Bateria": secao_bateria(d),
         "Rede": secao_rede(d),
+        "Sistema": secao_atualizacoes(d) + secao_dispositivos(d) + secao_eventos(d),
+        "Segurança": secao_seguranca(d),
+        "Hardware": secao_hardware(d),
         "Monitoramento": secao_monitor(d),
         "Processos": secao_processos(d),
     }

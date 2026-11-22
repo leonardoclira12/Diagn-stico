@@ -4,15 +4,21 @@ import threading
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 
-from . import __version__, analise, apresentacao, monitor, relatorio, tema
+from . import __version__, analise, apresentacao, atalhos, monitor, relatorio, tema
 from .coleta import coletar_tudo
 from .coletores import limpeza
 from .tema import (BG, BORDA, COR, DESTAQUE, FONTE, MENU, PAINEL, PAINEL2, SUAVE, TEXTO, Anel, Botao,
                    Cartao, Grafico, cor_por_uso, criar_texto, escrever)
 
-PAGINAS = ["Resumo", "Inicialização", "Discos", "Bateria", "Rede", "Monitoramento",
-           "Processos", "Limpeza", "Relatório"]
-PAGINAS_TEXTO = ["Inicialização", "Discos", "Bateria", "Rede", "Processos", "Relatório"]
+PAGINAS = ["Resumo", "Inicialização", "Discos", "Bateria", "Rede", "Sistema", "Segurança", "Hardware",
+           "Monitoramento", "Processos", "Limpeza", "Ferramentas", "Relatório"]
+PAGINAS_TEXTO = ["Inicialização", "Discos", "Bateria", "Rede", "Sistema", "Segurança", "Hardware",
+                 "Processos", "Relatório"]
+# Botões de atalho mostrados dentro de cada página (só os que existem no sistema atual)
+ATALHOS_PAGINA = {
+    "Inicialização": ["inicializacao"], "Discos": ["armazenamento", "disco"], "Rede": ["rede"],
+    "Sistema": ["atualizacoes", "dispositivos", "eventos"], "Segurança": ["seguranca"], "Processos": ["tarefas"],
+}
 DURACOES = ["30 segundos", "1 minuto", "2 minutos", "5 minutos", "10 minutos"]
 
 # Explicações curtas, só para o usuário entender o que está vendo.
@@ -23,10 +29,14 @@ EXPLICACAO = {
     "cpu": "O processador faz os cálculos. Perto de 100% por muito tempo deixa tudo lento.",
     "ram": "Memória de trabalho. Quando enche, o sistema usa o disco e fica lento.",
     "disco": "Espaço usado no disco principal. Com menos de 10% livre, o computador desacelera.",
-    "Inicialização": "Programas que abrem sozinhos ao ligar. Quanto mais, mais demora para o computador ficar pronto.",
+    "Inicialização": "Programas que abrem sozinhos ao ligar e quanto tempo o sistema levou para iniciar. Quanto mais programas, mais demora.",
     "Discos": "SSD é muito mais rápido que HD. A saúde indica se o disco está falhando.",
     "Bateria": "Saúde é quanto da capacidade original ainda resta. Abaixo de 80%, a duração cai bastante.",
     "Rede": "Latência é o tempo de resposta (menor é melhor). DNS traduz o nome de um site em endereço.",
+    "Sistema": "Atualizações pendentes, dispositivos com driver com defeito e erros graves recentes (telas azuis, desligamentos).",
+    "Segurança": "Antivírus e firewall protegem contra vírus e invasões. Desligados ou desatualizados, o computador fica exposto.",
+    "Hardware": "As peças do computador. Útil para saber o que dá para melhorar e para abrir chamados.",
+    "Ferramentas": "Atalhos para as ferramentas do sistema. Eles só abrem os programas, não mudam nada.",
     "Monitoramento": "Acompanha o computador por um tempo para pegar picos que um teste rápido perde.",
     "Processos": "Programas que mais usam processador e memória neste momento.",
     "Limpeza": "Arquivos temporários ocupam espaço e podem ser apagados com segurança.",
@@ -36,6 +46,9 @@ VAZIO = {
     "Inicialização": "Execute o diagnóstico para ver os programas que abrem com o sistema.",
     "Discos": "Execute o diagnóstico para ver tipo e saúde dos discos.",
     "Bateria": "Execute o diagnóstico para ver a bateria.",
+    "Sistema": "Execute o diagnóstico para ver atualizações, drivers e erros recentes.",
+    "Segurança": "Execute o diagnóstico para ver antivírus e firewall.",
+    "Hardware": "Execute o diagnóstico para ver as peças do computador.",
     "Rede": "Execute o diagnóstico para testar a rede.",
     "Processos": "Execute o diagnóstico para ver os processos que mais consomem.",
     "Relatório": "Execute o diagnóstico para gerar o relatório completo.",
@@ -44,6 +57,9 @@ TITULO_CARTAO = {
     "Inicialização": "Programas que abrem com o sistema",
     "Discos": "Discos e partições",
     "Bateria": "Estado da bateria",
+    "Sistema": "Atualizações, drivers e erros recentes",
+    "Segurança": "Antivírus e firewall",
+    "Hardware": "Peças do computador",
     "Rede": "Teste de rede",
     "Processos": "Maiores consumidores",
     "Relatório": "Relatório completo",
@@ -89,6 +105,7 @@ class App:
             self._criar_pagina_texto(nome)
         self._criar_monitoramento()
         self._criar_limpeza()
+        self._criar_ferramentas()
         self.mostrar_pagina("Resumo")
 
     # ================= estrutura =================
@@ -106,7 +123,7 @@ class App:
             barra = tk.Frame(linha, bg=MENU, width=3)
             barra.pack(side="left", fill="y")
             rot = tk.Label(linha, text=nome, bg=MENU, fg=SUAVE, font=(FONTE, 10), anchor="w",
-                           padx=19, pady=11, cursor="hand2")
+                           padx=19, pady=9, cursor="hand2")
             rot.pack(side="left", fill="x", expand=True)
             for w in (linha, rot, barra):
                 w.bind("<Button-1>", lambda _e, n=nome: self.mostrar_pagina(n))
@@ -216,6 +233,13 @@ class App:
         p.rowconfigure(0, weight=1)
         c = Cartao(p, TITULO_CARTAO.get(nome, nome), EXPLICACAO[nome])
         c.grid(row=0, column=0, sticky="nsew")
+        disp = {a["id"]: a for a in atalhos.disponiveis()}
+        ids = [i for i in ATALHOS_PAGINA.get(nome, []) if i in disp]
+        if ids:
+            linha = tk.Frame(c.corpo, bg=PAINEL)
+            linha.pack(fill="x", pady=(0, 8))
+            for i in ids:
+                Botao(linha, f"Abrir: {disp[i]['rotulo']}", lambda i=i: self._abrir_atalho(i)).pack(side="left", padx=(0, 8))
         t = criar_texto(c.corpo)
         t.quadro.pack(fill="both", expand=True)
         self.textos[nome] = t
@@ -277,6 +301,51 @@ class App:
         self.lista_limpeza = tk.Frame(c.corpo, bg=PAINEL)
         self.lista_limpeza.pack(fill="both", expand=True)
         self._lista_vazia("Clique em CALCULAR ESPAÇO para ver quanto dá para liberar.")
+
+    def _criar_ferramentas(self):
+        p = self._nova_pagina("Ferramentas")
+        p.columnconfigure(0, weight=1)
+        p.rowconfigure(0, weight=1)
+        c = Cartao(p, "Atalhos do sistema", EXPLICACAO["Ferramentas"])
+        c.grid(row=0, column=0, sticky="nsew")
+        lista = atalhos.disponiveis()
+        if not lista:
+            tk.Label(c.corpo, text="Os atalhos estão disponíveis no Windows e no Mac.", fg=SUAVE, bg=PAINEL,
+                     font=(FONTE, 10), anchor="w").pack(fill="x")
+        grade = tk.Frame(c.corpo, bg=PAINEL)
+        grade.pack(fill="x")
+        grade.columnconfigure(0, minsize=270)
+        grade.columnconfigure(1, weight=1)
+        for n, a in enumerate(lista):
+            Botao(grade, a["rotulo"], lambda i=a["id"]: self._abrir_atalho(i)).grid(
+                row=n, column=0, sticky="ew", pady=4, padx=(0, 16))
+            tk.Label(grade, text=a["dica"], fg=SUAVE, bg=PAINEL, font=(FONTE, 9), anchor="w").grid(
+                row=n, column=1, sticky="w")
+        if atalhos.SO == "Windows":
+            tk.Frame(c.corpo, bg=BORDA, height=1).pack(fill="x", pady=16)
+            adm = atalhos.e_administrador()
+            tk.Label(c.corpo, text="Executando como administrador: " + ("sim" if adm else "não"),
+                     fg=COR["ok"] if adm else TEXTO, bg=PAINEL, font=(FONTE, 10, "bold"), anchor="w").pack(fill="x")
+            tk.Label(c.corpo, fg=SUAVE, bg=PAINEL, font=(FONTE, 9), anchor="w", justify="left",
+                     text="Alguns dados (registro de eventos, tempo de inicialização) só aparecem com permissão de administrador."
+                     ).pack(fill="x", pady=(2, 8))
+            b = Botao(c.corpo, "REABRIR COMO ADMINISTRADOR", self._reabrir_admin, primario=not adm)
+            b.pack(anchor="w")
+            if adm:
+                b.configure(state="disabled")
+
+    def _abrir_atalho(self, id_):
+        if not atalhos.abrir(id_):
+            messagebox.showwarning("Não foi possível abrir", "Não consegui abrir essa ferramenta neste computador.")
+
+    def _reabrir_admin(self):
+        if not messagebox.askyesno("Reabrir como administrador",
+                                   "O Windows vai pedir a sua permissão e o app será reaberto.\nContinuar?"):
+            return
+        if atalhos.reabrir_como_administrador():
+            self.root.destroy()
+        else:
+            messagebox.showwarning("Permissão não concedida", "O app continua aberto sem permissão de administrador.")
 
     # ================= limpeza =================
     def _lista_vazia(self, texto):
