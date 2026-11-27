@@ -3,12 +3,13 @@ import queue
 import threading
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
+from tkinter import font as tkfont
 
 from . import __version__, analise, apresentacao, atalhos, monitor, relatorio, tema
 from .coleta import coletar_tudo
 from .coletores import limpeza
 from .tema import (BG, BORDA, COR, DESTAQUE, FONTE, MENU, PAINEL, PAINEL2, SUAVE, TEXTO, Anel, Botao,
-                   Cartao, Grafico, cor_por_uso, criar_texto, escrever)
+                   Cartao, Grafico, Rolavel, cor_por_uso, criar_texto, escrever)
 
 PAGINAS = ["Resumo", "Inicialização", "Discos", "Bateria", "Rede", "Sistema", "Segurança", "Hardware",
            "Monitoramento", "Processos", "Limpeza", "Ferramentas", "Relatório"]
@@ -81,7 +82,7 @@ class App:
 
         root.title(f"Diagnóstico v{__version__}")
         root.geometry("1120x740")
-        root.minsize(980, 640)
+        root.minsize(1040, 640)
         root.configure(bg=BG)
         tema.aplicar_estilo(root)
         root.columnconfigure(1, weight=1)
@@ -199,13 +200,15 @@ class App:
 
         c = Cartao(p, "Nota geral", EXPLICACAO["nota"])
         c.grid(row=0, column=0, sticky="nsew", padx=(0, 8))
-        self.anel_nota = Anel(c.corpo, 124)
-        self.anel_nota.pack(side="left", padx=(0, 16))
+        self.anel_nota = Anel(c.corpo, 108)
+        self.anel_nota.pack(side="left", padx=(0, 12))
         lado = tk.Frame(c.corpo, bg=PAINEL)
         lado.pack(side="left", fill="both", expand=True)
         self.lbl_nota = tk.Label(lado, text="SEM ANÁLISE", fg=COR["neutro"], bg=PAINEL,
                                  font=(FONTE, 15, "bold"), anchor="w")
         self.lbl_nota.pack(fill="x", pady=(20, 2))
+        self._tam_nota = 15
+        self.lbl_nota.bind("<Configure>", lambda _e: self._ajustar_nota())
         self.lbl_nota_sub = tk.Label(lado, text="Clique em EXECUTAR DIAGNÓSTICO.", fg=SUAVE, bg=PAINEL,
                                      font=(FONTE, 9), anchor="w", justify="left", wraplength=170)
         self.lbl_nota_sub.pack(fill="x")
@@ -226,6 +229,19 @@ class App:
         self.anel_cpu, self.det_cpu = self._medidor(p, 1, 0, "Processador (CPU)", EXPLICACAO["cpu"], (0, 8))
         self.anel_ram, self.det_ram = self._medidor(p, 1, 1, "Memória (RAM)", EXPLICACAO["ram"], 8)
         self.anel_disco, self.det_disco = self._medidor(p, 1, 2, "Espaço em disco", EXPLICACAO["disco"], (8, 0))
+
+    def _ajustar_nota(self):
+        """Reduz a fonte do título da nota (ex.: ATENÇÃO) até caber no espaço disponível."""
+        largura = self.lbl_nota.winfo_width()
+        if largura < 20:
+            return
+        texto = self.lbl_nota.cget("text")
+        for tam in (15, 14, 13, 12, 11, 10, 9):
+            if tkfont.Font(family=FONTE, size=tam, weight="bold").measure(texto) <= largura - 6:
+                break
+        if tam != self._tam_nota:
+            self._tam_nota = tam
+            self.lbl_nota.configure(font=(FONTE, tam, "bold"))
 
     def _criar_pagina_texto(self, nome):
         p = self._nova_pagina(nome)
@@ -308,11 +324,14 @@ class App:
         p.rowconfigure(0, weight=1)
         c = Cartao(p, "Atalhos do sistema", EXPLICACAO["Ferramentas"])
         c.grid(row=0, column=0, sticky="nsew")
+        area = Rolavel(c.corpo)
+        area.pack(fill="both", expand=True)
+        conteudo = area.interior
         lista = atalhos.disponiveis()
         if not lista:
-            tk.Label(c.corpo, text="Os atalhos estão disponíveis no Windows e no Mac.", fg=SUAVE, bg=PAINEL,
+            tk.Label(conteudo, text="Os atalhos estão disponíveis no Windows e no Mac.", fg=SUAVE, bg=PAINEL,
                      font=(FONTE, 10), anchor="w").pack(fill="x")
-        grade = tk.Frame(c.corpo, bg=PAINEL)
+        grade = tk.Frame(conteudo, bg=PAINEL)
         grade.pack(fill="x")
         grade.columnconfigure(0, minsize=270)
         grade.columnconfigure(1, weight=1)
@@ -322,17 +341,19 @@ class App:
             tk.Label(grade, text=a["dica"], fg=SUAVE, bg=PAINEL, font=(FONTE, 9), anchor="w").grid(
                 row=n, column=1, sticky="w")
         if atalhos.SO == "Windows":
-            tk.Frame(c.corpo, bg=BORDA, height=1).pack(fill="x", pady=16)
+            tk.Frame(conteudo, bg=BORDA, height=1).pack(fill="x", pady=14)
             adm = atalhos.e_administrador()
-            tk.Label(c.corpo, text="Executando como administrador: " + ("sim" if adm else "não"),
-                     fg=COR["ok"] if adm else TEXTO, bg=PAINEL, font=(FONTE, 10, "bold"), anchor="w").pack(fill="x")
-            tk.Label(c.corpo, fg=SUAVE, bg=PAINEL, font=(FONTE, 9), anchor="w", justify="left",
-                     text="Alguns dados (registro de eventos, tempo de inicialização) só aparecem com permissão de administrador."
-                     ).pack(fill="x", pady=(2, 8))
-            b = Botao(c.corpo, "REABRIR COMO ADMINISTRADOR", self._reabrir_admin, primario=not adm)
-            b.pack(anchor="w")
+            linha = tk.Frame(conteudo, bg=PAINEL)
+            linha.pack(fill="x")
+            tk.Label(linha, text="Executando como administrador: " + ("sim" if adm else "não"),
+                     fg=COR["ok"] if adm else TEXTO, bg=PAINEL, font=(FONTE, 10, "bold"), anchor="w").pack(side="left")
+            b = Botao(linha, "REABRIR COMO ADMINISTRADOR", self._reabrir_admin, primario=not adm)
+            b.pack(side="right", padx=(0, 4))
             if adm:
                 b.configure(state="disabled")
+            tk.Label(conteudo, fg=SUAVE, bg=PAINEL, font=(FONTE, 9), anchor="w", justify="left",
+                     text="Alguns dados (registro de eventos, tempo de inicialização) só aparecem com permissão de administrador."
+                     ).pack(fill="x", pady=(6, 4))
 
     def _abrir_atalho(self, id_):
         if not atalhos.abrir(id_):
@@ -377,8 +398,10 @@ class App:
                            selectcolor=PAINEL2, activebackground=PAINEL, activeforeground=TEXTO,
                            disabledforeground=SUAVE, highlightthickness=0, bd=0, font=(FONTE, 10, "bold"),
                            state="normal" if utilizavel else "disabled").pack(fill="x")
-            tk.Label(linha, text=f"{i['explicacao']}  Pasta: {i['pasta']}", anchor="w", fg=SUAVE, bg=PAINEL,
-                     font=(FONTE, 8)).pack(fill="x", padx=26)
+            detalhe = tk.Label(linha, text=f"{i['explicacao']}  Pasta: {i['pasta']}", anchor="w", justify="left",
+                               fg=SUAVE, bg=PAINEL, font=(FONTE, 8))
+            detalhe.pack(fill="x", padx=26)
+            detalhe.bind("<Configure>", lambda e, w=detalhe: w.configure(wraplength=max(e.width - 4, 200)))
         self._atualizar_total_limpeza()
 
     def _selecionados(self):
@@ -399,6 +422,8 @@ class App:
         cor = COR[nota["nivel"]]
         self.anel_nota.definir(nota["pontuacao"], str(nota["pontuacao"]), "de 100", cor)
         self.lbl_nota.configure(text=nota["titulo"], fg=cor)
+        self.root.update_idletasks()
+        self._ajustar_nota()
         self.lbl_nota_sub.configure(text=apresentacao.descrever_nota(nota))
 
         linhas = []

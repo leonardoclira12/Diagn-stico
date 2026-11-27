@@ -207,3 +207,54 @@ def escrever(txt, linhas):
     for t, tag in linhas:
         txt.insert("end", t, tag or ())
     txt.configure(state="disabled")
+
+
+class Rolavel(tk.Frame):
+    """Área com rolagem vertical (barra e roda do mouse) para conteúdo maior que a janela."""
+
+    def __init__(self, master, bg=PAINEL):
+        super().__init__(master, bg=bg)
+        self.canvas = tk.Canvas(self, bg=bg, highlightthickness=0, bd=0)
+        self._barra = ttk.Scrollbar(self, orient="vertical", command=self.canvas.yview)
+        self.canvas.configure(yscrollcommand=self._barra.set)
+        self.canvas.pack(side="left", fill="both", expand=True)
+        self.interior = tk.Frame(self.canvas, bg=bg)
+        self._janela = self.canvas.create_window((0, 0), window=self.interior, anchor="nw")
+        self.interior.bind("<Configure>", lambda _e: self._reajustar())
+        self.canvas.bind("<Configure>", self._ao_redimensionar)
+        for w in (self.canvas, self.interior):
+            w.bind("<Enter>", self._ligar_roda)
+            w.bind("<Leave>", self._desligar_roda)
+
+    def _ao_redimensionar(self, e):
+        self.canvas.itemconfigure(self._janela, width=e.width)
+        self._reajustar()
+
+    def _reajustar(self):
+        self.canvas.configure(scrollregion=self.canvas.bbox("all"))
+        precisa = self.interior.winfo_reqheight() > self.canvas.winfo_height() > 1
+        if precisa and not self._barra.winfo_ismapped():
+            self._barra.pack(side="right", fill="y")
+        elif not precisa and self._barra.winfo_ismapped():
+            self._barra.pack_forget()
+            self.canvas.yview_moveto(0)
+
+    def _ligar_roda(self, _e):
+        self.canvas.bind_all("<MouseWheel>", self._roda)
+        self.canvas.bind_all("<Button-4>", self._roda)
+        self.canvas.bind_all("<Button-5>", self._roda)
+
+    def _desligar_roda(self, _e):
+        for ev in ("<MouseWheel>", "<Button-4>", "<Button-5>"):
+            self.canvas.unbind_all(ev)
+
+    def _roda(self, e):
+        if not self._barra.winfo_ismapped():
+            return
+        if e.num == 4:
+            passo = -1
+        elif e.num == 5:
+            passo = 1
+        else:
+            passo = -1 if e.delta > 0 else 1
+        self.canvas.yview_scroll(passo, "units")
